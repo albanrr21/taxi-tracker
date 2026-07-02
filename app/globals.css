@@ -1,0 +1,33 @@
+:root {
+  --asphalt: #17181a;
+  --asphalt-2: #1f2124;
+  --amber: #ffb627;
+  --amber-dim: #8a6a22;
+  --cream: #efe9de;
+  --cream-dim: #9a9488;
+  --rust: #c1552e;
+  --line: #2c2e31;
+  --mono: "Space Mono", monospace;
+  --sans: "Manrope", sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--asphalt);
+  color: var(--cream);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input { font-family: inherit; }
+
+input:focus-visible, button:focus-visible {
+  outline: 2px solid var(--amber);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
