@@ -10,6 +10,7 @@ const MONTHS = ["January","February","March","April","May","June","July","August
 const DOW = ["M","T","W","T","F","S","S"];
 
 const pad = (n) => String(n).padStart(2, "0");
+const round2 = (n) => Math.round(n * 100) / 100;
 const keyFor = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
 const firstWeekdayMon = (y, m) => (new Date(y, m, 1).getDay() + 6) % 7;
@@ -107,6 +108,7 @@ function Tracker({ session }) {
   const [activeDay, setActiveDay] = useState(null);
   const [grossVal, setGrossVal] = useState("");
   const [tipsVal, setTipsVal] = useState("");
+  const [quickTip, setQuickTip] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [toast, setToast] = useState("");
 
@@ -181,6 +183,33 @@ function Tracker({ session }) {
     setActiveDay(d);
     setGrossVal(e ? String(e.gross) : "");
     setTipsVal(e && e.tips ? String(e.tips) : "");
+    setQuickTip("");
+  }
+
+  // Add a single tip to the running total for the active day and save it
+  // immediately, so a tip received mid-shift is never lost.
+  async function addTip() {
+    const amt = parseFloat(quickTip);
+    if (!amt) return;
+    const k = keyFor(viewYear, viewMonth, activeDay);
+    const gross = parseFloat(grossVal) || 0;
+    const newTips = round2((parseFloat(tipsVal) || 0) + amt);
+    const prevEntries = entries;
+    const prevTipsVal = tipsVal;
+    setTipsVal(String(newTips));
+    setQuickTip("");
+    setEntries({ ...entries, [k]: { gross, tips: newTips } });
+    const { error } = await supabase.from("entries").upsert(
+      { user_id: userId, work_date: k, gross, tips: newTips },
+      { onConflict: "user_id,work_date" }
+    );
+    if (error) {
+      setEntries(prevEntries);
+      setTipsVal(prevTipsVal);
+      showToast("Couldn't add tip — try again.");
+    } else {
+      showToast(`+€${amt.toFixed(2)} tip added`);
+    }
   }
 
   async function saveDay() {
@@ -340,10 +369,22 @@ function Tracker({ session }) {
             <label style={lbl}>Gross fares (€)</label>
             <input type="number" inputMode="decimal" autoFocus value={grossVal}
               onChange={(e) => setGrossVal(e.target.value)} placeholder="0" style={bigInp} />
-            <label style={{ ...lbl, marginTop: 12 }}>Tips (€) — 100% yours</label>
+            <label style={{ ...lbl, marginTop: 12 }}>Tips total (€) — 100% yours</label>
             <input type="number" inputMode="decimal" value={tipsVal}
-              onChange={(e) => setTipsVal(e.target.value)} placeholder="0" style={bigInp}
-              onKeyDown={(e) => e.key === "Enter" && saveDay()} />
+              onChange={(e) => setTipsVal(e.target.value)} placeholder="0" style={bigInp} />
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <input type="number" inputMode="decimal" value={quickTip}
+                onChange={(e) => setQuickTip(e.target.value)} placeholder="+ add a tip"
+                style={{ ...inp, flex: 1 }}
+                onKeyDown={(e) => e.key === "Enter" && addTip()} />
+              <button onClick={addTip}
+                style={{ padding: "0 18px", borderRadius: 8, border: "1px solid var(--amber)", background: "transparent", color: "var(--amber)", fontWeight: 700, fontFamily: "var(--mono)" }}>
+                Add
+              </button>
+            </div>
+            <div style={{ fontSize: 10, color: "var(--cream-dim)", marginTop: 6 }}>
+              Tap Add each time you get a tip — it saves right away.
+            </div>
             {grossVal && (
               <div style={{ marginTop: 12, fontSize: 12, color: "var(--cream-dim)" }}>
                 Your take: <span style={{ color: "var(--amber)", fontFamily: "var(--mono)" }}>
