@@ -16,6 +16,7 @@ export default function Settings({ store, onClose }) {
 
   const [percentVal, setPercentVal] = useState(String(cur));
   const [fromDate, setFromDate] = useState(todayISO());
+  const [goalVal, setGoalVal] = useState(store.settings.monthly_goal != null ? String(store.settings.monthly_goal) : "");
   const [busy, setBusy] = useState(false);
 
   const history = [...store.rates].sort((a, b) => (a.effective_from < b.effective_from ? 1 : -1));
@@ -25,6 +26,15 @@ export default function Settings({ store, onClose }) {
     if (isNaN(p)) return;
     setBusy(true);
     await store.addRate(fromDate, p);
+    setBusy(false);
+  }
+
+  async function saveGoal() {
+    const raw = goalVal.trim();
+    const val = raw === "" ? null : parseFloat(raw);
+    if (raw !== "" && isNaN(val)) return;
+    setBusy(true);
+    await store.saveSettings({ monthly_goal: val });
     setBusy(false);
   }
 
@@ -64,6 +74,15 @@ export default function Settings({ store, onClose }) {
       <div style={{ fontSize: 11, color: "var(--cream-dim)", marginTop: 8 }}>{t("settings.rateNote")}</div>
       <button onClick={saveRate} disabled={busy} style={{ ...primaryBtn, marginTop: 10, opacity: busy ? 0.6 : 1 }}>
         {t("settings.saveRate")}
+      </button>
+
+      {/* Monthly goal */}
+      <label style={{ ...lbl, marginTop: 18 }}>{t("settings.goal")}</label>
+      <input type="number" inputMode="decimal" value={goalVal}
+        onChange={(e) => setGoalVal(e.target.value)} placeholder="—" style={bigInp} />
+      <div style={{ fontSize: 11, color: "var(--cream-dim)", marginTop: 6 }}>{t("settings.goalHint")}</div>
+      <button onClick={saveGoal} disabled={busy} style={{ ...ghostBtn, marginTop: 10, opacity: busy ? 0.6 : 1 }}>
+        {t("save")}
       </button>
 
       {/* History */}

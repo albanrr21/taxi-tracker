@@ -46,8 +46,20 @@ export default function Home({ store, showToast, onOpenSettings }) {
     return total > (b?.total ?? -1) ? { iso: e.work_date, total } : b;
   }, null), [monthEntries, rates]);
 
-  // Simple projection for now; feature 4 replaces this with honest pace.
-  const projected = isCurrentMonth && daysWorked ? avgTakeHome * dim : takeHome;
+  // Honest projection: take-home so far / calendar days elapsed x days in month.
+  const todayDate = now.getDate();
+  const daysElapsed = isCurrentMonth ? todayDate : dim;
+  const projected = isCurrentMonth
+    ? (daysElapsed ? round2((takeHome / daysElapsed) * dim) : 0)
+    : takeHome;
+
+  // Monthly goal progress (current month only).
+  const goal = Number(store.settings.monthly_goal) || 0;
+  const showGoal = goal > 0 && isCurrentMonth;
+  const remainingDays = Math.max(1, dim - todayDate + 1);
+  const perDayNeeded = Math.max(0, round2((goal - takeHome) / remainingDays));
+  const goalPct = goal ? Math.min(100, Math.round((takeHome / goal) * 100)) : 0;
+  const goalReached = goal > 0 && takeHome >= goal;
 
   // All-time running balance with the company (cuts owed minus cash received).
   const bal = round2(earnedToDate(entries, rates) - totalPaid(payments));
@@ -105,6 +117,21 @@ export default function Home({ store, showToast, onOpenSettings }) {
             <Mini label={t("meter.tips")} v={eur(tipsTotal, 0)} />
             <Mini label={t("meter.days")} v={`${daysWorked}/${dim}`} dimmed />
           </div>
+
+          {showGoal && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+                <span style={{ fontSize: 9, color: "var(--amber-dim)", fontFamily: "var(--mono)", letterSpacing: "0.06em" }}>{t("goal.label")}</span>
+                <span style={{ fontSize: 11, color: "var(--cream-dim)", ...monoNum }}>{eur(takeHome, 0)} / {eur(goal, 0)}</span>
+              </div>
+              <div style={{ height: 6, borderRadius: 4, background: "var(--asphalt-2)", overflow: "hidden" }}>
+                <div style={{ height: "100%", width: `${goalPct}%`, background: "var(--amber)", transition: "width .3s" }} />
+              </div>
+              <div style={{ fontSize: 11, color: goalReached ? "var(--amber)" : "var(--cream-dim)", marginTop: 6 }}>
+                {goalReached ? t("goal.reached") : t("goal.needed", { amount: eur(perDayNeeded, 0), days: remainingDays })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Running balance with the company */}
