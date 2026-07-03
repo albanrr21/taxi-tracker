@@ -21,10 +21,16 @@ export default function AuthScreen() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         // Root's onAuthStateChange picks up the new session.
-      } else {
+      } else if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (!data.session) setInfo(t("auth.confirmEmail"));
+      } else {
+        // reset
+        const redirectTo = typeof window !== "undefined" ? window.location.origin : undefined;
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+        if (error) throw error;
+        setInfo(t("auth.reset.sent"));
       }
     } catch (e) {
       setErr(e.message || t("auth.error"));
@@ -45,35 +51,60 @@ export default function AuthScreen() {
         </div>
 
         <div style={{ background: "var(--asphalt-2)", border: "1px solid var(--line)", borderRadius: 14, padding: 20 }}>
-          <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
-            {["login", "signup"].map((m) => (
-              <button key={m} onClick={() => { setMode(m); setErr(""); setInfo(""); }}
-                style={{
-                  flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: 700,
-                  border: "1px solid var(--line)",
-                  background: mode === m ? "var(--amber)" : "transparent",
-                  color: mode === m ? "var(--asphalt)" : "var(--cream-dim)",
-                }}>
-                {m === "login" ? t("auth.login") : t("auth.signup")}
-              </button>
-            ))}
-          </div>
+          {mode !== "reset" ? (
+            <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
+              {["login", "signup"].map((m) => (
+                <button key={m} onClick={() => { setMode(m); setErr(""); setInfo(""); }}
+                  style={{
+                    flex: 1, padding: "9px 0", borderRadius: 8, fontSize: 13, fontWeight: 700,
+                    border: "1px solid var(--line)",
+                    background: mode === m ? "var(--amber)" : "transparent",
+                    color: mode === m ? "var(--asphalt)" : "var(--cream-dim)",
+                  }}>
+                  {m === "login" ? t("auth.login") : t("auth.signup")}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontFamily: "var(--mono)", fontSize: 13, color: "var(--cream-dim)", marginBottom: 16 }}>
+              {t("auth.reset.title").toUpperCase()}
+            </div>
+          )}
 
           <label style={lbl}>{t("auth.email")}</label>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("auth.emailPh")} style={inp} />
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("auth.emailPh")} style={inp}
+            onKeyDown={(e) => e.key === "Enter" && mode === "reset" && submit()} />
 
-          <label style={{ ...lbl, marginTop: 12 }}>{t("auth.password")}</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-            placeholder={t("auth.passwordPh")} style={inp}
-            onKeyDown={(e) => e.key === "Enter" && submit()} />
+          {mode !== "reset" && (
+            <>
+              <label style={{ ...lbl, marginTop: 12 }}>{t("auth.password")}</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                placeholder={t("auth.passwordPh")} style={inp}
+                onKeyDown={(e) => e.key === "Enter" && submit()} />
+            </>
+          )}
 
           {err && <div style={{ marginTop: 12, fontSize: 12, color: "var(--rust)" }}>{err}</div>}
           {info && <div style={{ marginTop: 12, fontSize: 12, color: "var(--amber)" }}>{info}</div>}
 
           <button onClick={submit} disabled={busy}
             style={{ ...primaryBtn, marginTop: 18, opacity: busy ? 0.6 : 1 }}>
-            {busy ? "…" : mode === "login" ? t("auth.startMeter") : t("auth.createAccount")}
+            {busy ? "…" : mode === "login" ? t("auth.startMeter") : mode === "signup" ? t("auth.createAccount") : t("auth.reset.send")}
           </button>
+
+          <div style={{ marginTop: 14, textAlign: "center" }}>
+            {mode === "reset" ? (
+              <button onClick={() => { setMode("login"); setErr(""); setInfo(""); }}
+                style={{ background: "none", border: "none", color: "var(--cream-dim)", fontSize: 12 }}>
+                {t("auth.reset.back")}
+              </button>
+            ) : (
+              <button onClick={() => { setMode("reset"); setErr(""); setInfo(""); }}
+                style={{ background: "none", border: "none", color: "var(--cream-dim)", fontSize: 12 }}>
+                {t("auth.forgot")}
+              </button>
+            )}
+          </div>
         </div>
 
         <div style={{ marginTop: 18, fontSize: 12, color: "var(--cream-dim)", textAlign: "center", lineHeight: 1.5 }}>

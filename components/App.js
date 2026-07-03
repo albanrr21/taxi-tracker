@@ -6,6 +6,7 @@ import { I18nProvider, useI18n } from "@/lib/i18n";
 import { useStore } from "@/lib/store";
 import { Toast } from "@/components/ui";
 import AuthScreen from "@/components/AuthScreen";
+import UpdatePassword from "@/components/UpdatePassword";
 import Home from "@/components/Home";
 import Paydays from "@/components/Paydays";
 import Settings from "@/components/Settings";
@@ -52,14 +53,19 @@ function Authed({ session }) {
 function Root() {
   const [session, setSession] = useState(null);
   const [ready, setReady] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => { setSession(data.session); setReady(true); });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === "PASSWORD_RECOVERY") setRecovering(true);
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
   if (!ready) return <Loading />;
+  if (recovering) return <UpdatePassword onDone={() => setRecovering(false)} />;
   if (!session) return <AuthScreen />;
   return <Authed session={session} />;
 }
