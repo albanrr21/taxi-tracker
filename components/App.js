@@ -7,7 +7,9 @@ import { useStore } from "@/lib/store";
 import { Toast } from "@/components/ui";
 import AuthScreen from "@/components/AuthScreen";
 import Home from "@/components/Home";
+import Paydays from "@/components/Paydays";
 import Settings from "@/components/Settings";
+import BottomNav from "@/components/BottomNav";
 
 function Loading() {
   const { t } = useI18n();
@@ -21,6 +23,7 @@ function Loading() {
 function Authed({ session }) {
   const store = useStore(session.user.id);
   const [toast, setToast] = useState("");
+  const [tab, setTab] = useState("home");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const seeded = useRef(false);
 
@@ -35,8 +38,11 @@ function Authed({ session }) {
   }, [store.loading, store.rates.length, store]);
 
   return (
-    <div style={{ minHeight: "100dvh", maxWidth: 520, margin: "0 auto" }}>
-      <Home store={store} showToast={showToast} onOpenSettings={() => setSettingsOpen(true)} />
+    <div style={{ minHeight: "100dvh", maxWidth: 520, margin: "0 auto", paddingBottom: 60 }}>
+      {tab === "home" && <Home store={store} showToast={showToast} onOpenSettings={() => setSettingsOpen(true)} />}
+      {tab === "paydays" && <Paydays store={store} showToast={showToast} />}
+
+      <BottomNav tab={tab} setTab={setTab} onOpenSettings={() => setSettingsOpen(true)} />
       {settingsOpen && <Settings store={store} onClose={() => setSettingsOpen(false)} />}
       {toast && <Toast>{toast}</Toast>}
     </div>

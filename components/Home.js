@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import {
   pad, keyFor, daysInMonth, firstWeekdayMon, todayISO,
   eur, round2, resolveRate, entryCut, entryTakeHome,
+  earnedToDate, totalPaid, balanceState,
 } from "@/lib/money";
 import { Mini, Label, Card, monoNum, navBtn, chipBtn, primaryBtn, amberOutlineBtn } from "@/components/ui";
 import DayEditor from "@/components/DayEditor";
@@ -14,7 +15,7 @@ import QuickTip from "@/components/QuickTip";
 
 export default function Home({ store, showToast, onOpenSettings }) {
   const { t, months, dow } = useI18n();
-  const { entries, rates } = store;
+  const { entries, rates, payments } = store;
 
   const now = new Date();
   const [viewYear, setViewYear] = useState(now.getFullYear());
@@ -47,6 +48,13 @@ export default function Home({ store, showToast, onOpenSettings }) {
 
   // Simple projection for now; feature 4 replaces this with honest pace.
   const projected = isCurrentMonth && daysWorked ? avgTakeHome * dim : takeHome;
+
+  // All-time running balance with the company (cuts owed minus cash received).
+  const bal = round2(earnedToDate(entries, rates) - totalPaid(payments));
+  const bs = balanceState(bal);
+  const balText = bs.kind === "settled" ? t("balance.settled")
+    : bs.kind === "owed" ? t("balance.owed", { amount: eur(bs.amount) })
+    : t("balance.advanced", { amount: eur(bs.amount) });
 
   const chartData = useMemo(() => {
     const arr = [];
@@ -99,7 +107,16 @@ export default function Home({ store, showToast, onOpenSettings }) {
           </div>
         </div>
 
-        {/* Balance under the meter is added in feature 2. */}
+        {/* Running balance with the company */}
+        {!store.loading && (
+          <div style={{ marginTop: 10, display: "flex", alignItems: "center", justifyContent: "space-between",
+            background: "var(--asphalt)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 14px" }}>
+            <span style={{ fontSize: 10, color: "var(--amber-dim)", fontFamily: "var(--mono)", letterSpacing: "0.08em" }}>
+              {t("balance.label")}
+            </span>
+            <span style={{ fontSize: 14, ...monoNum, color: bs.kind === "owed" ? "var(--amber)" : "var(--cream)" }}>{balText}</span>
+          </div>
+        )}
 
         {/* Primary actions */}
         <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
