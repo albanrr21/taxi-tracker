@@ -2,13 +2,18 @@ import "./globals.css";
 
 export const metadata = {
   title: "Taxi Meter — Earnings Tracker",
-  description: "Track your daily fares, tips, and monthly cut.",
+  description: "Your private record of fares, tips, and what the company owes you.",
+  applicationName: "Taxi Meter",
+  manifest: "/manifest.json",
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "Taxi Meter" },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: "#17181A",
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }) {
