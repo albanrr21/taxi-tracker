@@ -19,7 +19,7 @@ export const ghostBtn = { width: "100%", padding: "13px 0", borderRadius: 10, bo
 export const amberOutlineBtn = { padding: "0 18px", borderRadius: 8, border: "1px solid var(--amber)", background: "transparent", color: "var(--amber)", fontWeight: 700, fontFamily: "var(--mono)" };
 
 const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", justifyContent: "center", zIndex: 50 };
-const sheetBase = { background: "var(--asphalt-2)", border: "1px solid var(--line)", width: "100%", maxWidth: 520, padding: 20 };
+const sheetBase = { background: "var(--asphalt-2)", border: "1px solid var(--line)", width: "100%", maxWidth: 520, padding: 20, maxHeight: "88dvh", overflowY: "auto" };
 
 export const card = { background: "var(--asphalt-2)", border: "1px solid var(--line)", borderRadius: 10, padding: 12 };
 

@@ -3,26 +3,29 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n, LANGS } from "@/lib/i18n";
-import { resolveRate, todayISO } from "@/lib/money";
-import { lbl, bigInp, primaryBtn, ghostBtn, chipBtn, Sheet } from "@/components/ui";
+import { resolveRate, todayISO, parseISO } from "@/lib/money";
+import { lbl, inp, bigInp, primaryBtn, ghostBtn, chipBtn, monoNum, Sheet } from "@/components/ui";
 
-// Feature 1 settings: language, cut percentage (saved on confirm — fixes the old
-// write-on-every-keystroke bug), privacy line, logout. Setting a percentage adds
-// a rate effective today, so past days keep their old rate (feature 3 builds the
-// full rate history + effective-date picker on top of this).
+const dateInp = { ...inp, colorScheme: "dark", fontFamily: "var(--mono)" };
+
+// Settings: language, rate history (change your percentage from a chosen date,
+// never rewriting the past), privacy line, logout. Saves on confirm.
 export default function Settings({ store, onClose }) {
-  const { t, lang, setLang } = useI18n();
+  const { t, lang, setLang, months } = useI18n();
   const cur = resolveRate(store.rates, todayISO());
+
   const [percentVal, setPercentVal] = useState(String(cur));
+  const [fromDate, setFromDate] = useState(todayISO());
   const [busy, setBusy] = useState(false);
+
+  const history = [...store.rates].sort((a, b) => (a.effective_from < b.effective_from ? 1 : -1));
 
   async function saveRate() {
     const p = parseFloat(percentVal);
     if (isNaN(p)) return;
     setBusy(true);
-    const { error } = await store.addRate(todayISO(), p);
+    await store.addRate(fromDate, p);
     setBusy(false);
-    if (!error) onClose();
   }
 
   async function logout() { await supabase.auth.signOut(); }
@@ -33,8 +36,9 @@ export default function Settings({ store, onClose }) {
         {t("settings.title").toUpperCase()}
       </div>
 
+      {/* Language */}
       <label style={lbl}>{t("settings.language")}</label>
-      <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+      <div style={{ display: "flex", gap: 6, marginBottom: 18 }}>
         {LANGS.map((l) => (
           <button key={l.code} onClick={() => setLang(l.code)}
             style={{ ...chipBtn, flex: 1, fontWeight: 700,
@@ -45,18 +49,49 @@ export default function Settings({ store, onClose }) {
         ))}
       </div>
 
-      <label style={lbl}>{t("settings.rate")}</label>
+      {/* Current rate */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
+        <span style={{ fontSize: 12, color: "var(--cream-dim)" }}>{t("settings.currentRate")}</span>
+        <span style={{ fontSize: 22, color: "var(--amber)", ...monoNum }}>{cur}%</span>
+      </div>
+
+      {/* Change rate from a date */}
+      <label style={{ ...lbl, marginTop: 14 }}>{t("settings.changeRate")}</label>
       <input type="number" inputMode="decimal" value={percentVal}
         onChange={(e) => setPercentVal(e.target.value)} style={bigInp} />
+      <label style={{ ...lbl, marginTop: 10 }}>{t("settings.effectiveFrom")}</label>
+      <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={dateInp} />
+      <div style={{ fontSize: 11, color: "var(--cream-dim)", marginTop: 8 }}>{t("settings.rateNote")}</div>
       <button onClick={saveRate} disabled={busy} style={{ ...primaryBtn, marginTop: 10, opacity: busy ? 0.6 : 1 }}>
         {t("settings.saveRate")}
       </button>
 
-      <div style={{ fontSize: 11, color: "var(--cream-dim)", marginTop: 16, textAlign: "center" }}>
-        {t("settings.private")}
-      </div>
+      {/* History */}
+      {history.length > 0 && (
+        <div style={{ marginTop: 18 }}>
+          <label style={lbl}>{t("settings.rateHistory")}</label>
+          {history.map((r) => {
+            const { d, m, y } = parseISO(r.effective_from);
+            return (
+              <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between",
+                borderTop: "1px solid var(--line)", padding: "9px 0" }}>
+                <span style={{ fontSize: 13, color: "var(--amber)", ...monoNum }}>{Number(r.percent)}%</span>
+                <span style={{ fontSize: 12, color: "var(--cream-dim)", ...monoNum, flex: 1, textAlign: "right", marginRight: 10 }}>
+                  {t("settings.effectiveFrom").toLowerCase()} {d} {months[m].slice(0, 3)} {y}
+                </span>
+                {history.length > 1 && (
+                  <button onClick={() => store.deleteRate(r.id)}
+                    style={{ background: "none", border: "none", color: "var(--cream-dim)", fontSize: 16, lineHeight: 1 }}
+                    aria-label={t("delete")}>×</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      <button onClick={logout} style={{ ...ghostBtn, marginTop: 14 }}>{t("header.logout")}</button>
+      <div style={{ fontSize: 11, color: "var(--cream-dim)", marginTop: 18, textAlign: "center" }}>{t("settings.private")}</div>
+      <button onClick={logout} style={{ ...ghostBtn, marginTop: 12 }}>{t("header.logout")}</button>
     </Sheet>
   );
 }
