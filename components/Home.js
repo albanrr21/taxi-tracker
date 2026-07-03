@@ -4,17 +4,17 @@ import { useMemo, useState } from "react";
 import { BarChart, Bar, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useI18n } from "@/lib/i18n";
 import {
-  pad, keyFor, daysInMonth, firstWeekdayMon, todayISO,
-  eur, round2, resolveRate, entryCut, entryTakeHome,
+  pad, keyFor, daysInMonth, firstWeekdayMon, todayISO, nowHM, dowMon,
+  eur, round2, resolveRate, entryCut, entryTakeHome, shiftHours,
   earnedToDate, totalPaid, balanceState,
 } from "@/lib/money";
-import { Mini, Label, Card, monoNum, navBtn, chipBtn, primaryBtn, amberOutlineBtn } from "@/components/ui";
+import { Mini, Label, Card, monoNum, navBtn, chipBtn, primaryBtn, ghostBtn, amberOutlineBtn } from "@/components/ui";
 import DayEditor from "@/components/DayEditor";
 import EndShiftFlow from "@/components/EndShiftFlow";
 import QuickTip from "@/components/QuickTip";
 
 export default function Home({ store, showToast, onOpenSettings }) {
-  const { t, months, dow } = useI18n();
+  const { t, months, dow, weekdaysFull } = useI18n();
   const { entries, rates, payments } = store;
 
   const now = new Date();
@@ -60,6 +60,41 @@ export default function Home({ store, showToast, onOpenSettings }) {
   const perDayNeeded = Math.max(0, round2((goal - takeHome) / remainingDays));
   const goalPct = goal ? Math.min(100, Math.round((takeHome / goal) * 100)) : 0;
   const goalReached = goal > 0 && takeHome >= goal;
+
+  // Optional shift hours — never nag, only surface when present.
+  const todayEntry = entries[todayISO()];
+  const shiftRunning = !!(todayEntry?.shift_start && !todayEntry?.shift_end);
+  const canStartShift = !todayEntry?.shift_start;
+
+  async function startShift() {
+    const iso = todayISO();
+    const ex = entries[iso] || { gross: 0, tips: 0 };
+    const { error } = await store.upsertEntry(iso, { gross: ex.gross || 0, tips: ex.tips || 0, shift_start: nowHM() });
+    if (error) showToast(t("err.save"));
+    else showToast(t("home.shiftStarted"));
+  }
+
+  // €/hour + best weekday, computed only from days that have both times.
+  const hours = useMemo(() => {
+    const withHours = monthEntries
+      .map((e) => ({ e, h: shiftHours(e) }))
+      .filter((x) => x.h != null && x.h > 0);
+    if (withHours.length === 0) return null;
+    const totalH = withHours.reduce((s, x) => s + x.h, 0);
+    const totalTH = withHours.reduce((s, x) => s + entryTakeHome(x.e, rates), 0);
+    const byDow = {};
+    for (const x of withHours) {
+      const wd = dowMon(x.e.work_date);
+      (byDow[wd] ||= { h: 0, th: 0 }).h += x.h;
+      byDow[wd].th += entryTakeHome(x.e, rates);
+    }
+    let best = null;
+    for (const [wd, v] of Object.entries(byDow)) {
+      const rate = v.th / v.h;
+      if (rate > (best?.rate ?? -1)) best = { wd: Number(wd), rate };
+    }
+    return { perHour: totalH ? totalTH / totalH : 0, best };
+  }, [monthEntries, rates]);
 
   // All-time running balance with the company (cuts owed minus cash received).
   const bal = round2(earnedToDate(entries, rates) - totalPaid(payments));
@@ -147,6 +182,16 @@ export default function Home({ store, showToast, onOpenSettings }) {
 
         {/* Primary actions */}
         <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+          {shiftRunning && (
+            <div style={{ textAlign: "center", fontSize: 12, color: "var(--amber-dim)", fontFamily: "var(--mono)" }}>
+              {t("home.shiftSince", { time: todayEntry.shift_start.slice(0, 5) })}
+            </div>
+          )}
+          {canStartShift && (
+            <button onClick={startShift} style={{ ...ghostBtn, padding: "11px 0", fontSize: 13 }}>
+              {t("home.startShift")}
+            </button>
+          )}
           <button onClick={() => setEndShiftOpen(true)} style={{ ...primaryBtn, padding: "16px 0", fontSize: 16 }}>
             {t("home.endShift")}
           </button>
@@ -221,12 +266,18 @@ export default function Home({ store, showToast, onOpenSettings }) {
           <Card label={t("insights.bestDay")} v={bestDay ? `${eur(bestDay.total, 0)} (${Number(bestDay.iso.slice(8))} ${months[viewMonth].slice(0, 3)})` : "—"} />
           <Card label={t("insights.tipsShare")} v={takeHome ? `${Math.round((tipsTotal / takeHome) * 100)}%` : "—"} />
           <Card label={isCurrentMonth ? t("insights.projected") : t("insights.monthTotal")} v={eur(projected, 0)} accent />
+          {hours && <Card label={t("insights.perHour")} v={eur(hours.perHour, 1)} />}
+          {hours && hours.best && (
+            <Card label={t("insights.bestWeekday")}
+              v={t("insights.weekdayRate", { day: weekdaysFull[hours.best.wd], amount: eur(hours.best.rate, 0) })} />
+          )}
         </div>
       </div>
 
       {/* Overlays */}
       {endShiftOpen && (
         <EndShiftFlow
+          entries={entries}
           rates={rates}
           onClose={() => setEndShiftOpen(false)}
           upsertEntry={store.upsertEntry}

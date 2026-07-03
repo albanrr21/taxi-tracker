@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { round2, resolveRate, eur, todayISO } from "@/lib/money";
-import { primaryBtn, ghostBtn } from "@/components/ui";
+import { round2, resolveRate, eur, todayISO, nowHM } from "@/lib/money";
+import { primaryBtn } from "@/components/ui";
 
 const bigNum = {
   width: "100%", background: "transparent", border: "none",
@@ -19,10 +19,11 @@ const dateInp = {
 
 // Full-screen shift entry: step 1 gross fares, step 2 tips, then save.
 // Defaults to today; the date is editable so yesterday can be logged.
-export default function EndShiftFlow({ existing, rates, onClose, upsertEntry, showToast, endTime }) {
+export default function EndShiftFlow({ entries, rates, onClose, upsertEntry, showToast }) {
   const { t } = useI18n();
   const [step, setStep] = useState(1);
   const [dateISO, setDateISO] = useState(todayISO());
+  const existing = entries?.[todayISO()];
   const [gross, setGross] = useState(existing ? String(existing.gross) : "");
   const [tips, setTips] = useState(existing && existing.tips ? String(existing.tips) : "");
 
@@ -33,7 +34,9 @@ export default function EndShiftFlow({ existing, rates, onClose, upsertEntry, sh
     const take = round2(g * percent / 100 + tp);
     onClose();
     const patch = { gross: g, tips: tp };
-    if (endTime) patch.shift_end = endTime;
+    // If a shift was started today, stamp its end time now.
+    const dayEntry = entries?.[dateISO];
+    if (dateISO === todayISO() && dayEntry?.shift_start) patch.shift_end = nowHM();
     const { error } = await upsertEntry(dateISO, patch);
     if (error) showToast(t("err.save"));
     else showToast(t("endShift.saved", { amount: eur(take) }));
