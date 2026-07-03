@@ -8,7 +8,8 @@ import {
   eur, round2, resolveRate, entryCut, entryTakeHome, shiftHours,
   earnedToDate, totalPaid, balanceState,
 } from "@/lib/money";
-import { Mini, Label, Card, monoNum, navBtn, chipBtn, primaryBtn, ghostBtn, amberOutlineBtn } from "@/components/ui";
+import { Mini, Label, Card, card, monoNum, navBtn, chipBtn, primaryBtn, ghostBtn, amberOutlineBtn } from "@/components/ui";
+import { renderMonthCard } from "@/lib/shareCard";
 import DayEditor from "@/components/DayEditor";
 import EndShiftFlow from "@/components/EndShiftFlow";
 import QuickTip from "@/components/QuickTip";
@@ -95,6 +96,55 @@ export default function Home({ store, showToast, onOpenSettings }) {
     }
     return { perHour: totalH ? totalTH / totalH : 0, best };
   }, [monthEntries, rates]);
+
+  // Weekly recap (Mon–Sun of the current week, independent of viewed month).
+  const weekInfo = useMemo(() => {
+    const base = new Date();
+    const wd = (base.getDay() + 6) % 7;
+    const monday = new Date(base.getFullYear(), base.getMonth(), base.getDate() - wd);
+    let total = 0, days = 0, best = null;
+    for (let i = 0; i < 7; i++) {
+      const dt = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+      const iso = keyFor(dt.getFullYear(), dt.getMonth(), dt.getDate());
+      const e = entries[iso];
+      if (e) {
+        const th = entryTakeHome(e, rates);
+        total += th; days++;
+        if (th > (best?.th ?? -1)) best = { dowIdx: i, th };
+      }
+    }
+    return { total: round2(total), days, best };
+  }, [entries, rates]);
+
+  async function shareMonth() {
+    const percent = resolveRate(rates, keyFor(viewYear, viewMonth, dim));
+    const blob = await renderMonthCard({
+      brand: t("brand"),
+      title: `${months[viewMonth]} ${viewYear}`,
+      subtitle: `${daysWorked} ${t("share.daysWorked").toLowerCase()}`,
+      rows: [
+        { label: t("share.gross"), value: eur(grossTotal) },
+        { label: t("share.cut", { percent }), value: eur(cutTotal) },
+        { label: t("share.tips"), value: eur(tipsTotal) },
+      ],
+      total: eur(takeHome),
+      totalLabel: t("share.total"),
+      footer: t("share.footer"),
+    });
+    if (!blob) return;
+    const file = new File([blob], `taxi-meter-${viewYear}-${pad(viewMonth + 1)}.png`, { type: "image/png" });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: `${months[viewMonth]} ${viewYear}` });
+        return;
+      }
+    } catch { /* fall through to download */ }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = file.name;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
 
   // All-time running balance with the company (cuts owed minus cash received).
   const bal = round2(earnedToDate(entries, rates) - totalPaid(payments));
@@ -258,6 +308,27 @@ export default function Home({ store, showToast, onOpenSettings }) {
         </div>
       )}
 
+      {/* Weekly recap */}
+      <div style={{ padding: "14px 16px 0" }}>
+        <div style={{ ...card }}>
+          <Label>{t("recap.title")}</Label>
+          {weekInfo.days ? (
+            <>
+              <div style={{ fontSize: 14, color: "var(--cream)", marginTop: 6 }}>
+                {t("recap.summary", { amount: eur(weekInfo.total, 0), days: weekInfo.days })}
+              </div>
+              {weekInfo.best && (
+                <div style={{ fontSize: 12, color: "var(--cream-dim)", marginTop: 3 }}>
+                  {t("recap.best", { day: weekdaysFull[weekInfo.best.dowIdx], amount: eur(weekInfo.best.th, 0) })}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ fontSize: 13, color: "var(--cream-dim)", marginTop: 6 }}>{t("recap.none")}</div>
+          )}
+        </div>
+      </div>
+
       {/* Insights */}
       <div style={{ padding: "14px 16px 40px" }}>
         <Label>{t("insights.title")}</Label>
@@ -272,6 +343,10 @@ export default function Home({ store, showToast, onOpenSettings }) {
               v={t("insights.weekdayRate", { day: weekdaysFull[hours.best.wd], amount: eur(hours.best.rate, 0) })} />
           )}
         </div>
+
+        {daysWorked > 0 && (
+          <button onClick={shareMonth} style={{ ...ghostBtn, marginTop: 14 }}>📷 {t("share.month")}</button>
+        )}
       </div>
 
       {/* Overlays */}
