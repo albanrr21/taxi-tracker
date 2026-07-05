@@ -38,6 +38,11 @@ available).
    shareable month statement card (PNG).
 7. **i18n + trust + PWA** — Albanian/Serbian/English, privacy line, forgot-password
    flow, and installable as a PWA. Fully private: no data is shared with anyone.
+8. **Native-feel install on iPhone & Android** — safe-area handling (Dynamic
+   Island, home indicator, gesture nav), iOS startup images, maskable Android
+   icon, launcher shortcuts (End shift / + Tip via `/?action=…`), a minimal
+   service worker with a branded offline page, and keyboard-safe layouts
+   (16px inputs, action buttons never hidden behind the iOS decimal pad).
 
 ## Architecture
 
@@ -69,7 +74,12 @@ lib/
 supabase/
   migrations/      Numbered schema migrations
 public/
-  manifest.json, icon-192.png, icon-512.png   PWA
+  manifest.json      PWA manifest (id, lang sq, shortcuts, maskable icons)
+  sw.js              Minimal service worker (offline page + static cache;
+                     no write-queueing or push by design)
+  offline.html       Branded offline fallback
+  icon-*.png         any + maskable + apple-touch (all generated)
+  splash/            10 iOS startup images (device-matched via media queries)
 ```
 
 ## Data model

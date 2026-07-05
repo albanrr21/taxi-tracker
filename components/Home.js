@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { BarChart, Bar, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -24,6 +24,15 @@ export default function Home({ store, showToast, onOpenSettings }) {
   const [activeDayISO, setActiveDayISO] = useState(null);
   const [endShiftOpen, setEndShiftOpen] = useState(false);
   const [tipOpen, setTipOpen] = useState(false);
+
+  // Launcher shortcuts (manifest "shortcuts") deep-link into a flow via
+  // /?action=… — consume the param once, then clean the URL.
+  useEffect(() => {
+    const action = new URLSearchParams(window.location.search).get("action");
+    if (action === "end-shift") setEndShiftOpen(true);
+    else if (action === "tip") setTipOpen(true);
+    if (action) window.history.replaceState(null, "", "/");
+  }, []);
 
   const dim = daysInMonth(viewYear, viewMonth);
   const leadBlanks = firstWeekdayMon(viewYear, viewMonth);
@@ -172,7 +181,7 @@ export default function Home({ store, showToast, onOpenSettings }) {
   return (
     <div>
       {/* Header + meter */}
-      <div style={{ background: "var(--asphalt-2)", borderBottom: "1px solid var(--line)", padding: "18px 16px 20px" }}>
+      <div style={{ background: "var(--asphalt-2)", borderBottom: "1px solid var(--line)", padding: "calc(18px + env(safe-area-inset-top)) 16px 20px" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
           <div style={{ fontSize: 11, letterSpacing: "0.15em", color: "var(--amber-dim)", fontFamily: "var(--mono)" }}>
             {t("brand")}

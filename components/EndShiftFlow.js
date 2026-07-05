@@ -13,7 +13,7 @@ const bigNum = {
 };
 const dateInp = {
   background: "var(--asphalt-2)", border: "1px solid var(--line)", borderRadius: 8,
-  padding: "9px 12px", color: "var(--cream)", fontFamily: "var(--mono)", fontSize: 14,
+  padding: "9px 12px", color: "var(--cream)", fontFamily: "var(--mono)", fontSize: 16,
   colorScheme: "dark",
 };
 
@@ -43,8 +43,9 @@ export default function EndShiftFlow({ entries, rates, onClose, upsertEntry, sho
   }
 
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 80, background: "var(--asphalt)" }}>
-      <div style={{ maxWidth: 520, margin: "0 auto", height: "100dvh", display: "flex", flexDirection: "column", padding: 20 }}>
+    <div style={{ position: "fixed", inset: 0, zIndex: 80, background: "var(--asphalt)", overflowY: "auto" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto", minHeight: "100dvh", display: "flex", flexDirection: "column",
+        padding: "calc(16px + env(safe-area-inset-top)) 20px calc(16px + env(safe-area-inset-bottom))" }}>
         {/* header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button onClick={step === 1 ? onClose : () => setStep(1)}
@@ -69,8 +70,10 @@ export default function EndShiftFlow({ entries, rates, onClose, upsertEntry, sho
           </div>
         )}
 
-        {/* body */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center" }}>
+        {/* body — the action button sits directly under the input, never pinned to
+            the screen bottom: the iOS decimal pad has no Return key and would
+            otherwise hide the only way forward behind the keyboard. */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", textAlign: "center", paddingBottom: "10dvh" }}>
           <div style={{ fontSize: 16, color: "var(--cream)", marginBottom: 24 }}>
             {step === 1 ? t("endShift.grossQ") : t("endShift.tipsQ")}
           </div>
@@ -83,15 +86,13 @@ export default function EndShiftFlow({ entries, rates, onClose, upsertEntry, sho
               onChange={(e) => setTips(e.target.value)} placeholder="0" style={bigNum}
               onKeyDown={(e) => e.key === "Enter" && save()} />
           )}
-          <div style={{ marginTop: 12, fontSize: 12, color: "var(--cream-dim)" }}>€</div>
+          <div style={{ margin: "12px 0 24px", fontSize: 12, color: "var(--cream-dim)" }}>€</div>
+          {step === 1 ? (
+            <button onClick={() => setStep(2)} style={primaryBtn}>{t("next")}</button>
+          ) : (
+            <button onClick={save} style={primaryBtn}>{t("endShift.save")}</button>
+          )}
         </div>
-
-        {/* action */}
-        {step === 1 ? (
-          <button onClick={() => setStep(2)} style={primaryBtn}>{t("next")}</button>
-        ) : (
-          <button onClick={save} style={primaryBtn}>{t("endShift.save")}</button>
-        )}
       </div>
     </div>
   );
