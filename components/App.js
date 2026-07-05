@@ -39,7 +39,7 @@ function Authed({ session }) {
   }, [store.loading, store.rates.length, store]);
 
   return (
-    <div style={{ minHeight: "100dvh", maxWidth: 520, margin: "0 auto", paddingBottom: 60 }}>
+    <div style={{ minHeight: "100dvh", maxWidth: 520, margin: "0 auto", paddingBottom: "calc(60px + env(safe-area-inset-bottom))" }}>
       {tab === "home" && <Home store={store} showToast={showToast} onOpenSettings={() => setSettingsOpen(true)} />}
       {tab === "paydays" && <Paydays store={store} showToast={showToast} />}
 
@@ -61,6 +61,11 @@ function Root() {
       setSession(s);
       if (event === "PASSWORD_RECOVERY") setRecovering(true);
     });
+    // PWA: offline fallback + static-asset caching (production only, so dev
+    // never serves stale builds).
+    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
     return () => sub.subscription.unsubscribe();
   }, []);
 

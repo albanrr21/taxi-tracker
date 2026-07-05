@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#17181A" />
+  <title>Taksimetri — Offline</title>
+  <style>
+    body {
+      margin: 0; min-height: 100dvh; display: flex; align-items: center; justify-content: center;
+      background: #17181A; color: #EFE9DE; text-align: center; padding: 24px;
+      font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+    }
+    .brand { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; letter-spacing: 0.2em; color: #8A6A22; }
+    .num { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 30px; font-weight: 700; color: #FFB627; margin: 8px 0 14px; text-shadow: 0 0 18px rgba(255,182,39,0.3); }
+    p { color: #9A9488; font-size: 14px; margin: 0 0 6px; }
+    button {
+      margin-top: 22px; padding: 13px 34px; border: none; border-radius: 10px;
+      background: #FFB627; color: #17181A; font-weight: 800; font-size: 15px; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="brand">TAKSIMETRI</div>
+    <div class="num">— . —</div>
+    <p>S'ka internet. Shënimet e tua janë të sigurta — provo prapë kur të kesh lidhje.</p>
+    <p lang="en">You're offline. Your records are safe — try again when you're connected.</p>
+    <button onclick="location.reload()">Provo prapë</button>
+  </div>
+</body>
+</html>

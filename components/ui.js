@@ -6,7 +6,7 @@
 export const lbl = { display: "block", fontSize: 12, color: "var(--cream-dim)", marginBottom: 5 };
 export const inp = {
   width: "100%", background: "var(--asphalt)", border: "1px solid var(--line)", borderRadius: 8,
-  padding: "11px 12px", color: "var(--cream)", fontSize: 15, outline: "none",
+  padding: "11px 12px", color: "var(--cream)", fontSize: 16, outline: "none", // ≥16px: iOS won't zoom on focus
 };
 export const bigInp = { ...inp, fontFamily: "var(--mono)", fontSize: 22, color: "var(--amber)", fontVariantNumeric: "tabular-nums" };
 export const monoNum = { fontFamily: "var(--mono)", fontVariantNumeric: "tabular-nums" };
@@ -31,7 +31,8 @@ export function Sheet({ onClose, children, center }) {
         onClick={(e) => e.stopPropagation()}
         style={center
           ? { ...sheetBase, borderRadius: 16, width: "85%", maxWidth: 360 }
-          : { ...sheetBase, borderRadius: "16px 16px 0 0", borderBottom: "none" }}
+          : { ...sheetBase, borderRadius: "16px 16px 0 0", borderBottom: "none",
+              paddingBottom: "calc(20px + env(safe-area-inset-bottom))" }}
       >
         {children}
       </div>
@@ -41,7 +42,7 @@ export function Sheet({ onClose, children, center }) {
 
 export function Toast({ children }) {
   return (
-    <div style={{ position: "fixed", bottom: 76, left: "50%", transform: "translateX(-50%)", background: "var(--asphalt-2)", border: "1px solid var(--amber)", color: "var(--cream)", padding: "10px 16px", borderRadius: 10, fontSize: 13, zIndex: 70, maxWidth: "90%", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.4)" }}>
+    <div style={{ position: "fixed", bottom: "calc(76px + env(safe-area-inset-bottom))", left: "50%", transform: "translateX(-50%)", background: "var(--asphalt-2)", border: "1px solid var(--amber)", color: "var(--cream)", padding: "10px 16px", borderRadius: 10, fontSize: 13, zIndex: 70, maxWidth: "90%", textAlign: "center", boxShadow: "0 4px 20px rgba(0,0,0,0.4)" }}>
       {children}
     </div>
   );

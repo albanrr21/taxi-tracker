@@ -16,6 +16,7 @@ export default function BottomNav({ tab, setTab, onOpenSettings }) {
       position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)",
       width: "100%", maxWidth: 520, display: "flex",
       background: "var(--asphalt-2)", borderTop: "1px solid var(--line)", zIndex: 40,
+      paddingBottom: "env(safe-area-inset-bottom)", // clear the iOS home indicator
     }}>
       {items.map((it) => {
         const active = tab === it.key;

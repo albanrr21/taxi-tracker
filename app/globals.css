@@ -18,9 +18,18 @@ html, body {
   color: var(--cream);
   font-family: var(--sans);
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
 }
 
-button { font-family: inherit; cursor: pointer; }
+/* Contain pull-to-refresh / rubber-banding in the installed app. */
+body { overscroll-behavior-y: contain; }
+
+button {
+  font-family: inherit; cursor: pointer;
+  touch-action: manipulation;          /* no double-tap zoom on rapid + Tip taps */
+  -webkit-user-select: none; user-select: none;
+}
 input { font-family: inherit; }
 
 input:focus-visible, button:focus-visible {
