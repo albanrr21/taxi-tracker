@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { round2, resolveRate, parseISO, eur } from "@/lib/money";
+import { round2, resolveRate, parseISO, eur, cleanAmount, parseAmount } from "@/lib/money";
 import { lbl, inp, bigInp, amberOutlineBtn, primaryBtn, ghostBtn, monoNum, Sheet } from "@/components/ui";
 
 // Edit a single day from the calendar. Keeps the original editor behaviour:
@@ -17,11 +17,11 @@ export default function DayEditor({ dateISO, entry, rates, onClose, upsertEntry,
   const [quickTip, setQuickTip] = useState("");
 
   async function addTip() {
-    const amt = parseFloat(quickTip);
+    const amt = parseAmount(quickTip);
     if (!amt) return;
     const prevTipsVal = tipsVal;
-    const gross = parseFloat(grossVal) || 0;
-    const newTips = round2((parseFloat(tipsVal) || 0) + amt);
+    const gross = parseAmount(grossVal);
+    const newTips = round2(parseAmount(tipsVal) + amt);
     setTipsVal(String(newTips));
     setQuickTip("");
     const { error } = await upsertEntry(dateISO, { gross, tips: newTips });
@@ -30,8 +30,8 @@ export default function DayEditor({ dateISO, entry, rates, onClose, upsertEntry,
   }
 
   async function save() {
-    const gross = parseFloat(grossVal) || 0;
-    const tips = parseFloat(tipsVal) || 0;
+    const gross = parseAmount(grossVal);
+    const tips = parseAmount(tipsVal);
     if (grossVal.trim() === "" && tipsVal.trim() === "") return clear();
     onClose();
     const { error } = await upsertEntry(dateISO, { gross, tips });
@@ -44,7 +44,7 @@ export default function DayEditor({ dateISO, entry, rates, onClose, upsertEntry,
     if (error) showToast(t("err.delete"));
   }
 
-  const take = (parseFloat(grossVal) || 0) * percent / 100 + (parseFloat(tipsVal) || 0);
+  const take = parseAmount(grossVal) * percent / 100 + parseAmount(tipsVal);
 
   return (
     <Sheet onClose={onClose}>
@@ -53,15 +53,15 @@ export default function DayEditor({ dateISO, entry, rates, onClose, upsertEntry,
       </div>
 
       <label style={lbl}>{t("day.gross")}</label>
-      <input type="number" inputMode="decimal" autoFocus value={grossVal}
-        onChange={(e) => setGrossVal(e.target.value)} placeholder="0" style={bigInp} />
+      <input type="text" inputMode="decimal" autoFocus value={grossVal}
+        onChange={(e) => setGrossVal(cleanAmount(e.target.value))} placeholder="0" style={bigInp} />
 
       <label style={{ ...lbl, marginTop: 12 }}>{t("day.tipsTotal")}</label>
-      <input type="number" inputMode="decimal" value={tipsVal}
-        onChange={(e) => setTipsVal(e.target.value)} placeholder="0" style={bigInp} />
+      <input type="text" inputMode="decimal" value={tipsVal}
+        onChange={(e) => setTipsVal(cleanAmount(e.target.value))} placeholder="0" style={bigInp} />
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-        <input type="number" inputMode="decimal" value={quickTip}
-          onChange={(e) => setQuickTip(e.target.value)} placeholder={t("day.addTip")}
+        <input type="text" inputMode="decimal" value={quickTip}
+          onChange={(e) => setQuickTip(cleanAmount(e.target.value))} placeholder={t("day.addTip")}
           style={{ ...inp, flex: 1 }}
           onKeyDown={(e) => e.key === "Enter" && addTip()} />
         <button onClick={addTip} style={amberOutlineBtn}>{t("add")}</button>

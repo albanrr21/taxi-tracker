@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useI18n, LANGS } from "@/lib/i18n";
-import { resolveRate, todayISO, parseISO } from "@/lib/money";
+import { resolveRate, todayISO, parseISO, cleanAmount, parseAmount } from "@/lib/money";
 import { lbl, inp, bigInp, primaryBtn, ghostBtn, chipBtn, monoNum, Sheet } from "@/components/ui";
 
 const dateInp = { ...inp, colorScheme: "dark", fontFamily: "var(--mono)" };
@@ -22,8 +22,8 @@ export default function Settings({ store, onClose }) {
   const history = [...store.rates].sort((a, b) => (a.effective_from < b.effective_from ? 1 : -1));
 
   async function saveRate() {
-    const p = parseFloat(percentVal);
-    if (isNaN(p)) return;
+    if (percentVal.trim() === "") return;
+    const p = parseAmount(percentVal);
     setBusy(true);
     await store.addRate(fromDate, p);
     setBusy(false);
@@ -31,8 +31,7 @@ export default function Settings({ store, onClose }) {
 
   async function saveGoal() {
     const raw = goalVal.trim();
-    const val = raw === "" ? null : parseFloat(raw);
-    if (raw !== "" && isNaN(val)) return;
+    const val = raw === "" ? null : parseAmount(raw);
     setBusy(true);
     await store.saveSettings({ monthly_goal: val });
     setBusy(false);
@@ -67,8 +66,8 @@ export default function Settings({ store, onClose }) {
 
       {/* Change rate from a date */}
       <label style={{ ...lbl, marginTop: 14 }}>{t("settings.changeRate")}</label>
-      <input type="number" inputMode="decimal" value={percentVal}
-        onChange={(e) => setPercentVal(e.target.value)} style={bigInp} />
+      <input type="text" inputMode="decimal" value={percentVal}
+        onChange={(e) => setPercentVal(cleanAmount(e.target.value))} style={bigInp} />
       <label style={{ ...lbl, marginTop: 10 }}>{t("settings.effectiveFrom")}</label>
       <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={dateInp} />
       <div style={{ fontSize: 11, color: "var(--cream-dim)", marginTop: 8 }}>{t("settings.rateNote")}</div>
@@ -78,8 +77,8 @@ export default function Settings({ store, onClose }) {
 
       {/* Monthly goal */}
       <label style={{ ...lbl, marginTop: 18 }}>{t("settings.goal")}</label>
-      <input type="number" inputMode="decimal" value={goalVal}
-        onChange={(e) => setGoalVal(e.target.value)} placeholder="—" style={bigInp} />
+      <input type="text" inputMode="decimal" value={goalVal}
+        onChange={(e) => setGoalVal(cleanAmount(e.target.value))} placeholder="—" style={bigInp} />
       <div style={{ fontSize: 11, color: "var(--cream-dim)", marginTop: 6 }}>{t("settings.goalHint")}</div>
       <button onClick={saveGoal} disabled={busy} style={{ ...ghostBtn, marginTop: 10, opacity: busy ? 0.6 : 1 }}>
         {t("save")}

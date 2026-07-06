@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { round2, resolveRate, eur, todayISO, nowHM } from "@/lib/money";
+import { round2, resolveRate, eur, todayISO, nowHM, cleanAmount, parseAmount } from "@/lib/money";
 import { primaryBtn } from "@/components/ui";
 
 const bigNum = {
@@ -28,8 +28,8 @@ export default function EndShiftFlow({ entries, rates, onClose, upsertEntry, sho
   const [tips, setTips] = useState(existing && existing.tips ? String(existing.tips) : "");
 
   async function save() {
-    const g = parseFloat(gross) || 0;
-    const tp = parseFloat(tips) || 0;
+    const g = parseAmount(gross);
+    const tp = parseAmount(tips);
     const percent = resolveRate(rates, dateISO);
     const take = round2(g * percent / 100 + tp);
     onClose();
@@ -78,12 +78,12 @@ export default function EndShiftFlow({ entries, rates, onClose, upsertEntry, sho
             {step === 1 ? t("endShift.grossQ") : t("endShift.tipsQ")}
           </div>
           {step === 1 ? (
-            <input key="g" type="number" inputMode="decimal" autoFocus value={gross}
-              onChange={(e) => setGross(e.target.value)} placeholder="0" style={bigNum}
+            <input key="g" type="text" inputMode="decimal" autoFocus value={gross}
+              onChange={(e) => setGross(cleanAmount(e.target.value))} placeholder="0" style={bigNum}
               onKeyDown={(e) => e.key === "Enter" && setStep(2)} />
           ) : (
-            <input key="tp" type="number" inputMode="decimal" autoFocus value={tips}
-              onChange={(e) => setTips(e.target.value)} placeholder="0" style={bigNum}
+            <input key="tp" type="text" inputMode="decimal" autoFocus value={tips}
+              onChange={(e) => setTips(cleanAmount(e.target.value))} placeholder="0" style={bigNum}
               onKeyDown={(e) => e.key === "Enter" && save()} />
           )}
           <div style={{ margin: "12px 0 24px", fontSize: 12, color: "var(--cream-dim)" }}>€</div>

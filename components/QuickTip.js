@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { round2, eur, todayISO } from "@/lib/money";
+import { round2, eur, todayISO, cleanAmount, parseAmount } from "@/lib/money";
 import { bigInp, primaryBtn, Sheet } from "@/components/ui";
 
 // One input, one tap: add a single tip to today and save immediately.
@@ -13,7 +13,7 @@ export default function QuickTip({ entries, onClose, upsertEntry, showToast }) {
   const entry = entries[today];
 
   async function add() {
-    const a = parseFloat(amt);
+    const a = parseAmount(amt);
     if (!a) return;
     const gross = entry?.gross || 0;
     const newTips = round2((entry?.tips || 0) + a);
@@ -28,8 +28,8 @@ export default function QuickTip({ entries, onClose, upsertEntry, showToast }) {
       <div style={{ fontFamily: "var(--mono)", fontSize: 13, color: "var(--cream-dim)", marginBottom: 12 }}>
         {t("tip.for")}
       </div>
-      <input type="number" inputMode="decimal" autoFocus value={amt}
-        onChange={(e) => setAmt(e.target.value)} placeholder="0" style={bigInp}
+      <input type="text" inputMode="decimal" autoFocus value={amt}
+        onChange={(e) => setAmt(cleanAmount(e.target.value))} placeholder="0" style={bigInp}
         onKeyDown={(e) => e.key === "Enter" && add()} />
       <button onClick={add} style={{ ...primaryBtn, marginTop: 16 }}>{t("add")}</button>
     </Sheet>
