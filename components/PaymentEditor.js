@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
-import { todayISO } from "@/lib/money";
+import { todayISO, cleanAmount, parseAmount } from "@/lib/money";
 import { lbl, inp, bigInp, primaryBtn, ghostBtn, Sheet } from "@/components/ui";
 
 const dateInp = { ...inp, colorScheme: "dark", fontFamily: "var(--mono)" };
@@ -16,7 +16,7 @@ export default function PaymentEditor({ payment, onClose, store, showToast }) {
   const [note, setNote] = useState(payment?.note || "");
 
   async function save() {
-    const amt = parseFloat(amount);
+    const amt = parseAmount(amount);
     if (!amt) return;
     onClose();
     const patch = { paid_date: date, amount: amt, note: note.trim() || null };
@@ -39,8 +39,8 @@ export default function PaymentEditor({ payment, onClose, store, showToast }) {
       </div>
 
       <label style={lbl}>{t("paydays.amount")}</label>
-      <input type="number" inputMode="decimal" autoFocus value={amount}
-        onChange={(e) => setAmount(e.target.value)} placeholder="0" style={bigInp} />
+      <input type="text" inputMode="decimal" autoFocus value={amount}
+        onChange={(e) => setAmount(cleanAmount(e.target.value))} placeholder="0" style={bigInp} />
 
       <label style={{ ...lbl, marginTop: 12 }}>{t("paydays.date")}</label>
       <input type="date" value={date} max={todayISO()} onChange={(e) => setDate(e.target.value)} style={dateInp} />
