@@ -22,21 +22,27 @@ function Loading() {
 }
 
 function Authed({ session }) {
-  const store = useStore(session.user.id);
+  const { t } = useI18n();
   const [toast, setToast] = useState("");
+  const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 2500); };
+
+  const store = useStore(session.user.id, {
+    onQueued: () => showToast(t("sync.savedOffline")),
+    onSynced: () => showToast(t("sync.done")),
+  });
   const [tab, setTab] = useState("home");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const seeded = useRef(false);
 
-  const showToast = (m) => { setToast(m); setTimeout(() => setToast(""), 2500); };
-
   // Seed a default 30% rate for brand-new users so take-home isn't zero.
+  // Never seed while offline: an empty rates list there may just mean the
+  // load failed, and the queued seed would overwrite the real rate later.
   useEffect(() => {
-    if (!store.loading && store.rates.length === 0 && !seeded.current) {
+    if (!store.loading && !store.offline && store.rates.length === 0 && !seeded.current) {
       seeded.current = true;
       store.addRate("2000-01-01", 30);
     }
-  }, [store.loading, store.rates.length, store]);
+  }, [store.loading, store.offline, store.rates.length, store]);
 
   return (
     <div style={{ minHeight: "100dvh", maxWidth: 520, margin: "0 auto", paddingBottom: "calc(60px + env(safe-area-inset-bottom))" }}>

@@ -239,6 +239,13 @@ export default function Home({ store, showToast, onOpenSettings }) {
           </div>
         )}
 
+        {/* Offline edits waiting to sync — they push automatically on reconnect */}
+        {store.pending > 0 && (
+          <div style={{ marginTop: 8, textAlign: "center", fontSize: 11, fontFamily: "var(--mono)", color: "var(--amber)" }}>
+            ⟳ {t("sync.pending", { count: store.pending })}
+          </div>
+        )}
+
         {/* Primary actions */}
         <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
           {shiftRunning && (
