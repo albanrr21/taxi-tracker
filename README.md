@@ -43,6 +43,11 @@ available).
    icon, launcher shortcuts (End shift / + Tip via `/?action=…`), a minimal
    service worker with a branded offline page, and keyboard-safe layouts
    (16px inputs, action buttons never hidden behind the iOS decimal pad).
+9. **Works offline** — the installed app boots with no connection (cached app
+   shell + a local mirror of your data), and shifts/tips/payments logged
+   offline are queued on the device and pushed to Supabase automatically when
+   the connection returns. Queued ops are idempotent upserts, so a replay can
+   never double-count a shift or payment.
 
 ## Architecture
 
@@ -69,14 +74,16 @@ lib/
   store.js         Single data store (entries/rates/payments/settings) with
                    optimistic updates + rollback
   money.js         Money/date helpers, per-work_date rate resolution, balance
+  offline.js       Offline mirror + coalescing write queue (pure; the store
+                   passes in the executor)
   i18n.js          sq/sr/en dictionary + provider + t()
   shareCard.js     Canvas month-statement renderer
 supabase/
   migrations/      Numbered schema migrations
 public/
   manifest.json      PWA manifest (id, lang sq, shortcuts, maskable icons)
-  sw.js              Minimal service worker (offline page + static cache;
-                     no write-queueing or push by design)
+  sw.js              Service worker: offline app-shell boot + static cache
+                     (write queue lives in lib/offline.js; no push by design)
   offline.html       Branded offline fallback
   icon-*.png         any + maskable + apple-touch (all generated)
   splash/            10 iOS startup images (device-matched via media queries)
@@ -140,5 +147,5 @@ Migrations (apply in order via the Supabase SQL editor or `supabase db push`):
 ## Out of scope (by design)
 
 Expense tracking, company/fleet dashboards, GPS or ride-level tracking, OTP auth,
-push notifications, offline write-queueing, payments processing, and anything that
-shares driver data with anyone.
+push notifications, payments processing, and anything that shares driver data
+with anyone.

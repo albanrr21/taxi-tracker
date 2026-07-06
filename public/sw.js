@@ -1,14 +1,31 @@
-/* Taxi Meter service worker — deliberately minimal.
-   Scope: offline fallback page + cache-first static assets.
-   NOT here (by design): write-queueing, background sync, push. Data writes
-   stay online-only; a failed save rolls back and shows a toast in the app. */
+/* Taxi Meter service worker.
+   v2: full offline boot — the app shell ("/" plus the build assets it
+   references) is precached, so the installed app opens and renders from the
+   local mirror with no connection. Data writes made offline are queued by
+   the app itself (lib/offline.js) and replayed on reconnect.
+   Still NOT here (by design): background sync, push. */
 
-const CACHE = "taksimetri-v1";
-const PRECACHE = ["/offline.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
+const CACHE = "taksimetri-v2";
+const STATIC = ["/offline.html", "/manifest.json", "/icon-192.png", "/icon-512.png"];
+
+// Cache the app shell: the HTML of "/" and every build asset it references,
+// so a first-visit install is already offline-capable.
+async function cacheShell(c) {
+  try {
+    const res = await fetch("/", { cache: "no-cache" });
+    if (!res.ok) return;
+    const html = await res.clone().text();
+    await c.put("/", res);
+    const assets = [...new Set(html.match(/\/_next\/static\/[^"'\\ )>]+/g) || [])];
+    await Promise.all(assets.map((u) => c.add(u).catch(() => {})));
+  } catch { /* offline install — shell gets cached on the next online visit */ }
+}
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting())
+    caches.open(CACHE)
+      .then(async (c) => { await c.addAll(STATIC); await cacheShell(c); })
+      .then(() => self.skipWaiting())
   );
 });
 
@@ -25,9 +42,21 @@ self.addEventListener("fetch", (e) => {
   // Never intercept cross-origin traffic (Supabase auth/data, fonts).
   if (url.origin !== self.location.origin) return;
 
-  // Navigations: network first, branded offline page when the network is gone.
+  // Navigations: network first; keep the cached shell fresh on every success.
+  // Offline: serve the cached shell (the SPA boots from its local mirror);
+  // the offline page only appears if the shell was never cached.
   if (e.request.mode === "navigate") {
-    e.respondWith(fetch(e.request).catch(() => caches.match("/offline.html")));
+    e.respondWith(
+      fetch(e.request).then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put("/", copy));
+        }
+        return res;
+      }).catch(async () =>
+        (await caches.match("/")) || caches.match("/offline.html")
+      )
+    );
     return;
   }
 
